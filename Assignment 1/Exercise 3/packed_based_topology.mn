@@ -1,0 +1,127 @@
+{
+    "application": {
+        "dpctl": "",
+        "ipBase": "10.0.0.0/8",
+        "netflow": {
+            "nflowAddId": "0",
+            "nflowTarget": "",
+            "nflowTimeout": "600"
+        },
+        "openFlowVersions": {
+            "ovsOf10": "0",
+            "ovsOf11": "0",
+            "ovsOf12": "0",
+            "ovsOf13": "1"
+        },
+        "sflow": {
+            "sflowHeader": "128",
+            "sflowPolling": "30",
+            "sflowSampling": "400",
+            "sflowTarget": ""
+        },
+        "startCLI": "1",
+        "switchType": "ovs",
+        "terminalType": "xterm"
+    },
+    "controllers": [
+        {
+            "opts": {
+                "controllerProtocol": "tcp",
+                "controllerType": "remote",
+                "hostname": "c0",
+                "remoteIP": "127.0.0.1",
+                "remotePort": 6633
+            },
+            "x": "490.0",
+            "y": "56.0"
+        }
+    ],
+    "hosts": [
+        {
+            "number": "1",
+            "opts": {
+                "hostname": "h1",
+                "ip": "10.0.0.1",
+                "nodeNum": 1,
+                "sched": "host",
+                "startCommand": "sleep 10; for i in one two three four five six; do echo \"$i\" | nc -u -w1 10.0.0.100 12345; sleep 0.2; done &"
+            },
+            "x": "320.0",
+            "y": "335.0"
+        },
+        {
+            "number": "2",
+            "opts": {
+                "hostname": "h2",
+                "ip": "10.0.0.2",
+                "nodeNum": 2,
+                "sched": "host",
+                "startCommand": "ip addr add 10.0.0.100/32 dev lo; nc -u -l -k 10.0.0.100 12345 > /tmp/anycast_h2.log 2>&1 &"
+            },
+            "x": "444.0",
+            "y": "332.0"
+        },
+        {
+            "number": "3",
+            "opts": {
+                "hostname": "h3",
+                "ip": "10.0.0.3",
+                "nodeNum": 3,
+                "sched": "host",
+                "startCommand": "ip addr add 10.0.0.100/32 dev lo; nc -u -l -k 10.0.0.100 12345 > /tmp/anycast_h3.log 2>&1 &"
+            },
+            "x": "574.0",
+            "y": "332.0"
+        },
+        {
+            "number": "4",
+            "opts": {
+                "hostname": "h4",
+                "ip": "10.0.0.4",
+                "nodeNum": 4,
+                "sched": "host",
+                "startCommand": "ip addr add 10.0.0.100/32 dev lo; nc -u -l -k 10.0.0.100 12345 > /tmp/anycast_h4.log 2>&1 &"
+            },
+            "x": "725.0",
+            "y": "324.0"
+        }
+    ],
+    "links": [
+        {
+            "dest": "h1",
+            "opts": {},
+            "src": "s1"
+        },
+        {
+            "dest": "h2",
+            "opts": {},
+            "src": "s1"
+        },
+        {
+            "dest": "h3",
+            "opts": {},
+            "src": "s1"
+        },
+        {
+            "dest": "h4",
+            "opts": {},
+            "src": "s1"
+        }
+    ],
+    "switches": [
+        {
+            "number": "1",
+            "opts": {
+                "controllers": [
+                    "c0"
+                ],
+                "hostname": "s1",
+                "nodeNum": 1,
+                "switchType": "default"
+            },
+            "x": "483.0",
+            "y": "193.0"
+        }
+    ],
+    "version": "2"
+}
