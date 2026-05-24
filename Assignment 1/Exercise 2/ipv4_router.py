@@ -294,12 +294,13 @@ class L3Switch(app_manager.RyuApp):
 
         dst_ip = pkt_ipv4.dst
         route = self.lookup_route(dpid, dst_ip)
-        out_port = route.outport
-
 
         if route is None:
             self.logger.info("Unknown destination IP %s", dst_ip)
             return
+
+        out_port = route.outport
+
 
         if route.type == RouteType.LOCAL:
             # destination in same subnet, target mac adress is destination mac adress
