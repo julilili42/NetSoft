@@ -56,6 +56,28 @@ actions {
     bitwidth: 9
   }
 }
+counters {
+  preamble {
+    id: 318208999
+    name: "MyIngress.rx_counters"
+    alias: "rx_counters"
+  }
+  spec {
+    unit: BOTH
+  }
+  size: 1024
+}
+counters {
+  preamble {
+    id: 317406087
+    name: "MyIngress.tx_counters"
+    alias: "tx_counters"
+  }
+  spec {
+    unit: BOTH
+  }
+  size: 1024
+}
 registers {
   preamble {
     id: 382993994

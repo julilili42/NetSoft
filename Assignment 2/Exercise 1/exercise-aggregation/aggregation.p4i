@@ -921,6 +921,22 @@ header ipv4_t {
     ip4Addr_t dstAddr;
 }
 
+header tcp_t {
+    bit<16> srcPort;
+    bit<16> dstPort;
+    bit<32> seq;
+    bit<32> ack;
+}
+
+
+header udp_t {
+    bit<16> srcPort;
+    bit<16> dstPort;
+    bit<16> length;
+    bit<16> checksum;
+}
+
+
 struct metadata {
     /* empty */
 }
@@ -928,6 +944,8 @@ struct metadata {
 struct headers {
     ethernet_t ethernet;
     ipv4_t ipv4;
+    tcp_t tcp;
+    udp_t udp;
 }
 
 /*************************************************************************
@@ -953,6 +971,20 @@ parser MyParser(packet_in packet,
 
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
+        transition select(hdr.ipv4.protocol) {
+            6: parse_tcp;
+            17: parse_udp;
+            default: accept;
+        }
+    }
+
+    state parse_tcp {
+        packet.extract(hdr.tcp);
+        transition accept;
+    }
+
+    state parse_udp {
+        packet.extract(hdr.udp);
         transition accept;
     }
 }
@@ -976,6 +1008,8 @@ control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
     register<bit<1>>(1) lag_selector;
+    counter(1024, CounterType.packets_and_bytes) rx_counters;
+    counter(1024, CounterType.packets_and_bytes) tx_counters;
 
     action drop() {
         mark_to_drop(standard_metadata);
@@ -1003,21 +1037,58 @@ control MyIngress(inout headers hdr,
 
 
     apply {
-    bit<1> state;
+        rx_counters.count((bit<32>) standard_metadata.ingress_port);
 
-    if (hdr.ipv4.isValid()) {
-        ipv4_lpm.apply();
-        if (standard_metadata.egress_spec == LAG_PORT) {
-                lag_selector.read(state, (bit<32>)0);
+        if (hdr.ipv4.isValid()) {
+            ipv4_lpm.apply();
 
-                if (state == (bit<1>)0) {
-                    standard_metadata.egress_spec = LAG_LINK_A;
-                    lag_selector.write((bit<32>)0, (bit<1>)1);
+            if (standard_metadata.egress_spec == LAG_PORT) {
+                if (hdr.tcp.isValid() || hdr.udp.isValid()) {
+                    bit<32> flow_hash;
+                    bit<16> srcPort = 0;
+                    bit<16> dstPort = 0;
+
+                    if (hdr.tcp.isValid()) {
+                        srcPort = hdr.tcp.srcPort;
+                        dstPort = hdr.tcp.dstPort;
+                    } else {
+                        srcPort = hdr.udp.srcPort;
+                        dstPort = hdr.udp.dstPort;
+                    }
+
+                    hash(flow_hash,
+                        HashAlgorithm.crc32,
+                        (bit<32>)0,
+                        {
+                            hdr.ipv4.srcAddr,
+                            hdr.ipv4.dstAddr,
+                            srcPort,
+                            dstPort,
+                            hdr.ipv4.protocol
+                        },
+                        (bit<32>)2);
+
+                    if (flow_hash == 0) {
+                        standard_metadata.egress_spec = LAG_LINK_A;
+                    } else {
+                        standard_metadata.egress_spec = LAG_LINK_B;
+                    }
+
                 } else {
-                    standard_metadata.egress_spec = LAG_LINK_B;
-                    lag_selector.write((bit<32>)0, (bit<1>)0);
+                    bit<1> selector;
+                    lag_selector.read(selector, (bit<32>)0);
+
+                    if (selector == 0) {
+                        standard_metadata.egress_spec = LAG_LINK_A;
+                        lag_selector.write((bit<32>)0, (bit<1>)1);
+                    } else {
+                        standard_metadata.egress_spec = LAG_LINK_B;
+                        lag_selector.write((bit<32>)0, (bit<1>)0);
+                    }
                 }
             }
+
+            tx_counters.count((bit<32>) standard_metadata.egress_spec);
         }
     }
 }
@@ -1064,6 +1135,8 @@ control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
+        packet.emit(hdr.tcp);
+        packet.emit(hdr.udp);
     }
 }
 
