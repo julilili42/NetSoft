@@ -1,0 +1,9 @@
+Disadvantages:
+The "only accept the next expected sequence number" approach is very strict.
+If packets arrive out of order a valid packet can be dropped.
+If the next expected packet is lost on both paths, the receiver waits for this sequence number forever and drops all later packets.
+
+Improvement:
+Use an acceptance window instead of accepting only one exact sequence number.
+Packets within a certain sequence number range are accepted. Old packets are dropped as duplicates and the expected sequence number is advanced accordingly.
+This makes the protection more robust against packet reordering and packet loss.
